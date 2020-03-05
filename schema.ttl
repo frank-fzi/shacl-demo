@@ -1,0 +1,121 @@
+# baseURI: http://example.org/cc/schema
+# imports: http://example.org/cc/quantityOnto
+
+@prefix cc: <http://example.org/cc/> .
+@prefix dash: <http://datashapes.org/dash#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix quantity: <http://qudt.org/vocab/quantity/> .
+@prefix quantitykind: <http://qudt.org/vocab/quantitykind/> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.org/cc/schema>
+  rdf:type owl:Ontology ;
+  owl:imports <http://example.org/cc/quantityOnto> ;
+.
+cc:ProductSpecification
+  rdf:type rdfs:Class ;
+  rdf:type sh:NodeShape ;
+  rdfs:label "product specification" ;
+  sh:property [
+      rdf:type sh:PropertyShape ;
+      sh:path rdfs:label ;
+      sh:datatype xsd:string ;
+      sh:maxCount 1 ;
+      sh:minCount 1 ;
+      sh:name "label" ;
+    ] ;
+.
+cc:VacuumCleaner
+  rdf:type rdfs:Class ;
+  rdf:type sh:NodeShape ;
+  rdfs:label "Staubsauger"@de ;
+  rdfs:label "vacuum cleaner"@en ;
+  sh:property [
+      rdf:type sh:PropertyShape ;
+      sh:path cc:type ;
+      rdfs:label "type designation" ;
+      sh:datatype xsd:string ;
+      sh:maxCount 1 ;
+      sh:minCount 1 ;
+    ] ;
+  sh:property [
+      rdf:type sh:PropertyShape ;
+      sh:path rdfs:label ;
+      sh:datatype xsd:string ;
+      sh:maxCount 1 ;
+      sh:minCount 1 ;
+      sh:name "label" ;
+    ] ;
+.
+cc:documentValidSince
+  rdf:type owl:DatatypeProperty ;
+  rdfs:label "PRD of product" ;
+.
+cc:externalUri
+  rdf:type owl:DatatypeProperty ;
+  rdfs:comment "Referring to URI defined by external authority."@en ;
+  rdfs:comment "Verweis auf eine externe URI, welche dasselbe Konzept repräsentiert."@de ;
+  rdfs:label "external URI"@en ;
+  rdfs:label "externe URI"@de ;
+.
+cc:productPRD
+  rdf:type owl:DatatypeProperty ;
+  rdfs:label "PRD of product" ;
+.
+cc:quantity
+  rdf:type owl:DatatypeProperty ;
+  rdfs:label "quantity as \"decimal unit\""@en ;
+  rdfs:range xsd:string ;
+.
+cc:rangeQuantity
+  rdf:type owl:ObjectProperty ;
+  rdfs:label "related QUDT quantity (e.g. qudt:MassUnit)" ;
+  rdfs:range owl:Class ;
+.
+cc:rangeUnit
+  rdf:type owl:ObjectProperty ;
+  rdfs:label "related QUDT unit (e.g. unit:KG)" ;
+  rdfs:range qudt:Unit ;
+.
+cc:schema
+  rdf:type owl:Ontology ;
+  owl:imports <http://datashapes.org/dash> ;
+  owl:imports cc:quantityOnto ;
+  owl:imports <http://qudt.org/2.0/vocab/unit/> ;
+  owl:versionInfo "Created with TopBraid Composer" ;
+  sh:declare [
+      rdf:type sh:PrefixDeclaration ;
+      sh:namespace "http://example.org/cc/"^^xsd:anyURI ;
+      sh:prefix "basf" ;
+    ] ;
+  sh:declare [
+      rdf:type sh:PrefixDeclaration ;
+      sh:namespace "http://qudt.org/schema/qudt/"^^xsd:anyURI ;
+      sh:prefix "qudt" ;
+    ] ;
+.
+cc:shelfLife
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:TimeUnit ;
+  rdfs:label "shelf life as string with any time unit, e.g. \"12 mo\""@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:time
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:TimeUnit ;
+  rdfs:label "time as string with any time unit, e.g. \"12 mo\""@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:type
+  rdf:type owl:DatatypeProperty ;
+  rdfs:label "type designation" ;
+.
+cc:validSince
+  rdf:type owl:DatatypeProperty ;
+  rdfs:label "valid since" ;
+  rdfs:range xsd:date ;
+.

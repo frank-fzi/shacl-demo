@@ -1,0 +1,639 @@
+# baseURI: http://example.org/cc/quantityOnto
+# imports: http://datashapes.org/dash
+# imports: http://qudt.org/2.0/vocab/unit/
+
+@prefix cc: <http://example.org/cc/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix solr: <http://seronet-projekt.de/models/solr#> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+cc:Dimensions
+  sh:property [
+      sh:path cc:height ;
+      solr:preferredSolrType "pfloat" ;
+      sh:datatype xsd:decimal ;
+      sh:description "Höhe in Millimetern"@de ;
+      sh:description "physical height in millimeters"@en ;
+      sh:maxCount 1 ;
+      sh:minCount 1 ;
+      sh:name "height" ;
+    ] ;
+  sh:property [
+      sh:path cc:length ;
+      solr:preferredSolrType "pfloat" ;
+      sh:datatype xsd:decimal ;
+      sh:description "Länge in Millimetern"@de ;
+      sh:description "physical length in millimeters"@en ;
+      sh:maxCount 1 ;
+      sh:minCount 1 ;
+      sh:name "length" ;
+    ] ;
+  sh:property [
+      sh:path cc:width ;
+      solr:preferredSolrType "pfloat" ;
+      sh:datatype xsd:decimal ;
+      sh:description "Breite in Millimetern"@de ;
+      sh:description "physical width in millimeters"@en ;
+      sh:maxCount 1 ;
+      sh:minCount 1 ;
+      sh:name "width" ;
+    ] ;
+.
+cc:Quantity
+  rdf:type rdfs:Class ;
+  rdf:type sh:NodeShape ;
+  rdfs:subClassOf rdfs:Resource ;
+  sh:rule [
+      rdf:type sh:SPARQLRule ;
+      rdfs:comment "query 1: quantity.unit = float -> quantity = \"float unit\"" ;
+      sh:construct """CONSTRUCT {
+	?subject ?property ?value .
+}
+WHERE  {
+	?subject ?propertyUnit ?number .
+	?propertyUnit rdfs:subPropertyOf cc:quantity.unit
+	BIND(STRAFTER(str(?propertyUnit), \"#\") AS ?quantityUnit) 
+	BIND(STRAFTER(?quantityUnit, \".\") AS ?abbr) 
+	BIND(STRBEFORE(?quantityUnit, \".\") AS ?quantity) 
+	?unit qudt:abbreviation ?abbr .
+	?unit qudt:symbol ?symbol .
+	BIND(CONCAT(str(?number), \" \", ?symbol) AS ?value)
+	BIND(IRI(CONCAT(str(cc:), ?quantity)) AS ?property)
+}""" ;
+      sh:deactivated "true"^^xsd:boolean ;
+      sh:order 1 ;
+      sh:prefixes cc:quantityOnto ;
+    ] ;
+  sh:rule [
+      rdf:type sh:SPARQLRule ;
+      rdfs:comment "query 2: quantity.unit = float -> {QUDT}" ;
+      sh:construct """CONSTRUCT { 
+	?subject qudt:hasQuantity  ?quantityIri .
+	?quantityIri rdf:type qudt:Quantity . 
+	?quantityIri qudt:hasQuantityKind ?quantityKind .
+	?quantityIri cc:rangeQuantity ?rangeQuantity .
+	?quantityIri qudt:quantityValue ?valueIri .
+	?valueIri rdf:type qudt:QuantityValue .
+	?valueIri qudt:unit ?unit .
+	?valueIri qudt:numericValue ?number .
+    ?valueIri cc:authoritative \"true\"^^xsd:boolean .
+}
+WHERE  {
+	?subject ?propertyUnit ?number .
+	?propertyUnit rdfs:subPropertyOf cc:quantity.unit .	
+	?propertyUnit cc:rangeQuantity ?rangeQuantity .
+    ?propertyUnit cc:rangeUnit ?unit .
+    ?unit qudt:abbreviation ?abbr .
+	BIND(STRAFTER(str(?propertyUnit), \"#\") AS ?quantityUnit) 
+	BIND(STRBEFORE(?quantityUnit, \".\") AS ?quantity) 
+	BIND(IRI(CONCAT(str(?subject), \".\", ENCODE_FOR_URI(?quantityString))) AS ?quantityIri)    
+    BIND(IRI(CONCAT(str(?quantityIri), \".\", ENCODE_FOR_URI(?abbr))) AS ?valueIri)
+	OPTIONAL { ?unit qudt:hasQuantityKind ?quantityKind }
+	OPTIONAL { ?unit qudt:quantityKind ?quantityKind} 
+}""" ;
+      sh:deactivated "true"^^xsd:boolean ;
+      sh:order 2 ;
+      sh:prefixes cc:quantityOnto ;
+    ] ;
+  sh:rule [
+      rdf:type sh:SPARQLRule ;
+      rdfs:comment "query 3: quantity = \"float unit\" -> quantity.unit = float" ;
+      sh:construct """ CONSTRUCT { 
+            ?subject ?propertyUnit ?number .
+        }
+        WHERE {
+            ?subject ?property ?value .
+            ?property rdfs:subPropertyOf cc:quantity .
+			?property cc:rangeQuantity ?quantityClass .
+            BIND(xsd:decimal(STRBEFORE(?value, \" \")) AS ?number)
+            BIND(STRAFTER(?value, \" \") AS ?symbol) 
+			BIND(STRAFTER(str(?property), str(cc:)) AS ?quantity)
+			?unit qudt:symbol ?symbol .
+			?unit qudt:abbreviation ?abbr .
+			?unit a ?quantityClass .
+            BIND(CONCAT(?quantity, \".\", ?abbr) AS ?quantityUnit)
+            BIND(IRI(CONCAT(str(cc:), ?quantityUnit)) AS ?propertyUnit)
+        }	""" ;
+      sh:deactivated "false"^^xsd:boolean ;
+      sh:order 3 ;
+      sh:prefixes cc:quantityOnto ;
+    ] ;
+  sh:rule [
+      rdf:type sh:SPARQLRule ;
+      rdfs:comment "query 4: quantity = \"float unit\" -> {QUDT}" ;
+      sh:construct """CONSTRUCT { 
+	?subject qudt:hasQuantity ?quantityIri .
+	?quantityIri rdf:type qudt:Quantity . 
+	?quantityIri qudt:hasQuantityKind ?quantityKind .
+	?quantityIri cc:rangeQuantity ?quantity .  
+	?quantityIri qudt:quantityValue ?valueIri .
+	?valueIri rdf:type qudt:QuantityValue .
+	?valueIri qudt:unit ?unit .
+	?valueIri qudt:numericValue ?number .
+    ?valueIri cc:authoritative \"true\"^^xsd:boolean .
+}
+WHERE  {
+	?subject ?property ?value .
+	?property rdfs:subPropertyOf cc:quantity.
+	?property cc:rangeQuantity ?quantity .    
+	BIND(xsd:decimal(STRBEFORE(?value, \" \")) AS ?number)
+	BIND(STRAFTER(?value, \" \") AS ?symbol)     
+	?unit a ?quantity .
+	?unit qudt:symbol ?symbol .
+	?unit qudt:abbreviation ?abbr .
+	BIND(STRAFTER(str(?property), str(cc:)) AS ?quantityString) 
+	BIND(IRI(CONCAT(str(?subject), \".\", ?quantityString)) AS ?quantityIri)
+    BIND(IRI(CONCAT(str(?quantityIri), \".\", ENCODE_FOR_URI(?abbr)) )AS ?valueIri)
+	OPTIONAL { ?unit qudt:hasQuantityKind ?quantityKind }
+	OPTIONAL { ?unit qudt:quantityKind ?quantityKind} 
+}""" ;
+      sh:deactivated "false"^^xsd:boolean ;
+      sh:order 4 ;
+      sh:prefixes cc:quantityOnto ;
+    ] ;
+  sh:rule [
+      rdf:type sh:SPARQLRule ;
+      rdfs:comment "query 5: {QUDT} -> quantity.unit = float" ;
+      sh:construct """CONSTRUCT { 
+	?subject ?propertyUnit ?number .
+}
+WHERE {
+	?subject qudt:hasQuantity ?quantity .
+	?quantity a qudt:Quantity .
+	?quantity qudt:quantityValue ?value .
+	?value qudt:unit ?unit .
+	?value qudt:numericValue ?number .
+	?unit qudt:abbreviation ?abbr .
+	BIND(STRAFTER(str(?quantity), str(?subject)) AS ?quantityName) 
+	BIND(STRAFTER(?quantityName, \".\") AS ?quantityString)
+	BIND(CONCAT(?quantityString, \".derived.\", ?abbr) AS ?quantityUnit)
+	BIND(IRI(CONCAT(str(cc:), ENCODE_FOR_URI(?quantityUnit))) AS ?propertyUnit)
+}""" ;
+      sh:deactivated "false"^^xsd:boolean ;
+      sh:order 15 ;
+      sh:prefixes cc:quantityOnto ;
+    ] ;
+  sh:rule [
+      rdf:type sh:SPARQLRule ;
+      rdfs:comment "query 6: {QUDT} -> quantity = \"float unit\"" ;
+      sh:construct """CONSTRUCT { 
+	?subject ?property ?value .
+}     
+WHERE {
+	?subject qudt:hasQuantity ?quantity .
+	?quantity qudt:quantityValue ?quantityValue .
+	?quantityValue qudt:unit ?unit .
+	?quantityValue qudt:numericValue ?number .
+	?unit qudt:symbol ?symbol .
+	BIND(CONCAT(str(?number), \" \", ?symbol) AS ?value)
+	BIND(STRAFTER(str(?quantity), str(?subject)) AS ?quantityName)  
+	BIND(STRAFTER(?quantityName, \".\") AS ?quantityString)
+	BIND(IRI(CONCAT(str(cc:), ENCODE_FOR_URI(?quantityString), \".derived\")) AS ?property)
+}""" ;
+      sh:deactivated "true"^^xsd:boolean ;
+      sh:order 16 ;
+      sh:prefixes cc:quantityOnto ;
+    ] ;
+  sh:rule [
+      rdf:type sh:SPARQLRule ;
+      rdfs:comment "query 7: {QUDT} -> {QUDT'} (with base unit)" ;
+      sh:construct """CONSTRUCT { 
+	?subject qudt:hasQuantity ?quantity .
+	?quantity rdf:type qudt:Quantity . 
+	?quantity qudt:hasQuantityKind ?quantityKind .
+	?quantity cc:rangeQuantity ?quantityClass .
+	?quantity qudt:quantityValue ?valueIri.
+	?valueIri rdf:type qudt:QuantityValue .
+	?valueIri qudt:unit ?baseUnit .
+	?valueIri qudt:numericValue ?baseNumber .
+    ?valueIri cc:authoritative \"false\"^^xsd:boolean .
+}      
+WHERE {
+	?subject qudt:hasQuantity ?quantity .
+	?quantity cc:rangeQuantity ?quantityClass .
+    ?quantity qudt:quantityValue ?quantityValue .
+    ?quantityValue cc:authoritative \"true\"^^xsd:boolean .
+	?quantityValue qudt:unit ?unit .
+	?quantityValue qudt:numericValue ?number .
+	?unit qudt:conversionMultiplier ?multiplier .
+	?unit qudt:conversionOffset ?offset .
+	?baseUnit a ?quantityClass .
+	?baseUnit qudt:conversionMultiplier 1e+00 .
+	?baseUnit qudt:conversionOffset 0e+00 .
+    ?baseUnit qudt:abbreviation ?abbr .
+    BIND(IRI(CONCAT(str(?quantity), \".\", ENCODE_FOR_URI(?abbr), \".derived\")) AS ?valueIri)
+	BIND(?number * ?multiplier + ?offset AS ?baseNumber)
+}""" ;
+      sh:deactivated "false"^^xsd:boolean ;
+      sh:order 7 ;
+      sh:prefixes cc:quantityOnto ;
+    ] ;
+  sh:rule [
+      rdf:type sh:SPARQLRule ;
+      rdfs:comment "query 8: {QUDT} -> {QUDT'} (with siblings)" ;
+      sh:construct """CONSTRUCT { 
+	?subject qudt:hasQuantity?quantity .
+	?quantity rdf:type qudt:Quantity . 
+	?quantity qudt:hasQuantityKind ?quantityKind .
+	?quantity cc:rangeQuantity ?quantityClass . 
+	?quantity qudt:quantityValue ?valueIri .
+	?valueIri rdf:type qudt:QuantityValue .
+	?valueIri qudt:unit ?unit .
+	?valueIri qudt:numericValue ?number .
+    ?valueIri cc:authoritative \"false\"^^xsd:boolean .
+}       
+WHERE {
+	?subject qudt:hasQuantity ?quantity .
+	?quantity qudt:quantityValue ?quantityValue .
+	?quantity cc:rangeQuantity ?quantityClass .
+	?quantityValue qudt:unit ?baseUnit .
+	?quantityValue qudt:numericValue ?baseNumber .
+	?baseUnit a ?quantityClass .
+	?baseUnit qudt:conversionMultiplier 1e+00 .
+	?baseUnit qudt:conversionOffset 0e+00 .
+	?unit a ?quantityClass .
+	?unit qudt:conversionMultiplier ?multiplier .
+	?unit qudt:conversionOffset ?offset .
+    ?unit qudt:abbreviation ?abbr .
+    BIND(IRI(CONCAT(str(?quantity), \".\", ENCODE_FOR_URI(?abbr), \".derived\")) AS ?valueIri)
+	BIND((?baseNumber - ?offset ) / ?multiplier AS ?number)
+}""" ;
+      sh:deactivated "false"^^xsd:boolean ;
+      sh:order 8 ;
+      sh:prefixes cc:quantityOnto ;
+    ] ;
+  sh:target [
+      rdf:type sh:SPARQLTarget ;
+      sh:prefixes cc:quantityOnto ;
+      sh:select """SELECT ?this
+WHERE {
+    ?this a cc:VacuumCleaner
+}""" ;
+    ] ;
+.
+cc:angle
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:AngleUnit ;
+  rdfs:label "Winkel"@de ;
+  rdfs:label "angle"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+<http://example.org/cc/angle.deg>
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:AngleUnit ;
+  cc:rangeUnit unit:DEG ;
+  rdfs:comment "Winkel in Grad als Fließkommazahl"@en ;
+  rdfs:comment "angle in degree as float"@en ;
+  rdfs:label "Angle (degree)"@en ;
+  rdfs:label "Winkel (Grad)"@de ;
+  rdfs:subPropertyOf <http://example.org/cc/quantity.unit> ;
+.
+cc:angularResolutionHorizontal
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:AngleUnit ;
+  rdfs:label "Winkelauflösung (horizontal)"@de ;
+  rdfs:label "angular resolution (horizontal)"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:angularResolutionVertical
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:AngleUnit ;
+  rdfs:label "Winkelauflösung (vertikal)"@de ;
+  rdfs:label "angular resolution (vertical)"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:apertureAngleHorizontal
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:AngleUnit ;
+  rdfs:label "aperture angle (horizontal)"@en ;
+  rdfs:label "Öffnungswinkel (horizontal)"@de ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:apertureAngleVertical
+  cc:rangeQuantity qudt:AngleUnit ;
+  rdfs:label "aperture angle (vertical)"@en ;
+  rdfs:label "Öffnungswinkel (vertikal)"@de ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:authoritative
+  rdf:type owl:DatatypeProperty ;
+  cc:shortDescription "gibt an, ob eine Maßangabe maßgeblich für ein Subjekt ist"@de ;
+  cc:shortDescription "indicates whether a quantity value is authoritative for its subject"@en ;
+  rdfs:label "authoritative"@en ;
+  rdfs:label "maßgeblich"@de ;
+  rdfs:range xsd:boolean ;
+.
+cc:fingerLength
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  rdfs:label "Länge der Finger"@DE ;
+  rdfs:label "finger length"@EN ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:frameRate
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:FrequencyUnit ;
+  rdfs:label "Bildrate"@de ;
+  rdfs:label "frame rate"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+<http://example.org/cc/frameRate.hz>
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:FrequencyUnit ;
+  cc:rangeUnit unit:HZ ;
+  rdfs:label "Bildrate (Hertz)"@de ;
+  rdfs:label "frame rate (Hertz)"@en ;
+  rdfs:subPropertyOf <http://example.org/cc/quantity.unit> ;
+.
+cc:handlingHeight
+  rdf:type owl:DatatypeProperty ;
+  cc:description "Max. umschließbares Volumen (BxHxT), für das Max. Tragkraft gilt"@DE ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  rdfs:label "Max. umschließbare Höhe "@DE ;
+  rdfs:label "handling height"@EN ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:handlingLength
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  cc:shortDescription "Max. umschließbares Volumen (BxHxT), für das Max. Tragkraft gilt"@DE ;
+  rdfs:label "Max. umschließbare Länge "@DE ;
+  rdfs:label "handling length"@EN ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:handlingWeight
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:MassUnit ;
+  rdfs:comment "Maximale Traglast"@de ;
+  rdfs:comment "Maximum weight of handled objects"@en ;
+  rdfs:label "Traglast"@de ;
+  rdfs:label "handling weight"@EN ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:handlingWidth
+  rdf:type owl:DatatypeProperty ;
+  cc:description "Max. umschließbares Volumen (BxHxT), für das Max. Tragkraft gilt"@DE ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  rdfs:label "Max. umschließbare Breite in mm "@DE ;
+  rdfs:label "handling width"@EN ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:height
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  rdfs:label "Höhe"@de ;
+  rdfs:label "physical height"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:length
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  rdfs:label "Länge"@de ;
+  rdfs:label "physical length"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:maxAccuracy
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  rdfs:label "max accuracy"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:maxAirflow
+  rdf:type owl:DatatypeProperty ;
+  rdfs:label "Max. Volumenfluss "@DE ;
+  rdfs:label "max air flow"@EN ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:maxAmbientOperatingTemperature
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:TemperatureUnit ;
+  rdfs:label "max ambient operating temperature"@en ;
+  rdfs:label "max. Betriebsumgebungstemperatur"@de ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:maxDeviceOperatingTemperature
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:TemperatureUnit ;
+  rdfs:label "max device operating temperature"@en ;
+  rdfs:label "max. Gerätetemperatur während des Betriebs"@de ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:maxPower
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:PowerUnit ;
+  cc:shortDescription "max power consumption"@en ;
+  cc:shortDescription "max. Leistungsaufnahme"@DE ;
+  rdfs:label "Leistungsaufnahme"@DE ;
+  rdfs:label "power consumption"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:maxWorkingRange
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  rdfs:label "max. Reichweite" ;
+  rdfs:label "max. working range"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:minAccuracy
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeUnit qudt:LengthUnit ;
+  rdfs:label "min. Genauigkeit"@de ;
+  rdfs:label "min. accuracy"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:minAmbientOperatingTemperature
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:TemperatureUnit ;
+  rdfs:label "min. Betriebsumgebungstemperatur"@de ;
+  rdfs:label "min. ambient operating temperature"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:minDeviceOperatingTemperature
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:TemperatureUnit ;
+  rdfs:label "min. Gerätetemperatur während des Betriebs"@de ;
+  rdfs:label "min. device operating temperature"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:minPower
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:PowerUnit ;
+  rdfs:label "min Leistungsaufnahme"@de ;
+  rdfs:label "min power consumption"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:minWorkingRange
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  rdfs:label "min. Reichweite"@de ;
+  rdfs:label "minimum working range"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:openingSize
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  rdfs:comment "Maximale Öffnungsweite des Greifers"@de ;
+  rdfs:comment "Maximum opening size of the gripper"@en ;
+  rdfs:label "Max. Öffnungsweite"@de ;
+  rdfs:label "max. opening size"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:operatingPressure
+  rdf:type owl:DatatypeProperty ;
+  rdfs:label "Arbeitsdruck"@DE ;
+  rdfs:label "operating pressure"@EN ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:pixelSize
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  rdfs:label "Pixelgröße"@de ;
+  rdfs:label "pixel size"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+<http://example.org/cc/pixelSize.micrometer>
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  cc:rangeUnit unit:MicroM ;
+  rdfs:label "Pixelgröße (µm)"@de ;
+  rdfs:label "pixel size (in µm)"@en ;
+  rdfs:subPropertyOf <http://example.org/cc/quantity.unit> ;
+.
+cc:quantity
+  rdf:type owl:DatatypeProperty ;
+  cc:renderingType cc:RenderingTypeQUANTITY ;
+  cc:shortDescription "abstract super poperty for quantities, e.g. \"50 kg\" or \"200 mm\""@en ;
+  cc:shortDescription "abstraktes Superattribut für Maße, z.B. \"50 kg\" oder \"200 mm\""@DE ;
+  rdfs:label "Maß"@DE ;
+  rdfs:label "quantity"@en ;
+  rdfs:range xsd:string ;
+.
+<http://example.org/cc/quantity.unit>
+  rdf:type owl:DatatypeProperty ;
+  cc:renderingType cc:RenderingTypeQUANTITY ;
+  cc:shortDescription "abstract super poperty for quantities and unit, e.g. temp.degC = 40"@en ;
+  cc:shortDescription "abstraktes Superattribut für Maße mit impliziter Maßeinheit, z.B. temp.degC = 40"@de ;
+  rdfs:label "Maß"@DE ;
+  rdfs:label "quantity"@en ;
+  rdfs:range xsd:decimal ;
+.
+cc:quantityOnto
+  rdf:type owl:Ontology ;
+  owl:imports <http://datashapes.org/dash> ;
+  owl:imports <http://qudt.org/2.0/vocab/unit/> ;
+  sh:declare [
+      rdf:type sh:PrefixDeclaration ;
+      sh:namespace "http://example.org/cc/"^^xsd:anyURI ;
+      sh:prefix "cc" ;
+    ] ;
+  sh:declare [
+      rdf:type sh:PrefixDeclaration ;
+      sh:namespace "http://qudt.org/schema/qudt/"^^xsd:anyURI ;
+      sh:prefix "qudt" ;
+    ] ;
+  sh:declare [
+      rdf:type sh:PrefixDeclaration ;
+      sh:namespace "http://qudt.org/schema/qudt/"^^xsd:anyURI ;
+      sh:prefix "qudt" ;
+    ] ;
+  sh:declare [
+      rdf:type sh:PrefixDeclaration ;
+      sh:namespace "http://www.w3.org/2000/01/rdf-schema#"^^xsd:anyURI ;
+      sh:prefix "rdfs" ;
+    ] ;
+  sh:declare [
+      rdf:type sh:PrefixDeclaration ;
+      sh:namespace "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI ;
+      sh:prefix "xsd" ;
+    ] ;
+  sh:declare [
+      rdf:type sh:PrefixDeclaration ;
+      sh:namespace "http://www.w3.org/2002/07/owl#"^^xsd:anyURI ;
+      sh:prefix "owl" ;
+    ] ;
+.
+cc:rangeQuantity
+  rdf:type owl:TransitiveProperty ;
+  rdfs:label "related QUDT quantity (e.g. qudt:MassUnit)" ;
+  rdfs:range owl:Class ;
+.
+cc:rangeUnit
+  rdf:type owl:TransitiveProperty ;
+  rdfs:label "related QUDT unit (e.g. unit:KG)" ;
+  rdfs:range qudt:Unit ;
+.
+<http://example.org/cc/resolutionHeight.px>
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:CountingUnit ;
+  cc:rangeUnit unit:NUM ;
+  rdfs:label "Bildauflösung Höhe (Pixel)"@de ;
+  rdfs:label "Image resolution height (pixel)"@en ;
+  rdfs:subPropertyOf <http://example.org/cc/quantity.unit> ;
+.
+<http://example.org/cc/resolutionWidth.px>
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:CountingUnit ;
+  cc:rangeUnit unit:NUM ;
+  rdfs:label "Bildauflösung Breite (Pixel)"@de ;
+  rdfs:label "Image resolution width (pixel)"@en ;
+  rdfs:subPropertyOf <http://example.org/cc/quantity.unit> ;
+.
+cc:runningTime
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:TimeUnit ;
+  rdfs:label "Betriebszeit"@de ;
+  rdfs:label "running time"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:shoeSize
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  cc:shortDescription "Breite und Tiefe der das Werkstück haltenden Backenfläche, in mm"@DE ;
+  rdfs:label "Backengröße"@DE ;
+  rdfs:label "shoe size"@EN ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:speed
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:LinearVelocityUnit ;
+  cc:shortDescription "Geschwindigkeit der Fortbewegung, z.B. \"100 km/h\" oder \"2 m/s\""@de ;
+  cc:shortDescription "Speed of movement, e.g. \"100 km/h\" or \"2 m/s\""@en ;
+  rdfs:label "Geschwindigkeit"@de ;
+  rdfs:label "speed"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:stroke
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  rdfs:label "Laufweg"@DE ;
+  rdfs:label "stroke"@EN ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:voltage
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:EnergyPerElectricChargeUnit ;
+  cc:shortDescription "Elektrische Spannung, z.B. \"230 V\""@de ;
+  cc:shortDescription "Voltage, e.g. \"230 V\""@en ;
+  rdfs:label "Spannung"@DE ;
+  rdfs:label "Voltage"@EN ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:weight
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:MassUnit ;
+  rdfs:label "Gewicht"@de ;
+  rdfs:label "weight"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:width
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:LengthUnit ;
+  rdfs:label "Breite"@de ;
+  rdfs:label "physical width"@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.

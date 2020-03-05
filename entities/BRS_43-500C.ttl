@@ -1,0 +1,27 @@
+# baseURI: http://example.org/cc/BRS_43-500C
+# imports: http://example.org/basf/schema
+# imports: http://example.org/cc/schema
+
+@prefix cc: <http://example.org/cc/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+cc:BRS_43-500C_onto
+  rdf:type owl:Ontology ;
+  owl:imports <http://example.org/basf/schema> ;
+  owl:imports cc:schema ;
+.
+cc:BRS_43-500C
+  rdf:type cc:VacuumCleaner ;
+  cc:weight "25 kg" ;
+  cc:type "Vacuum Cleaner" ;
+  rdfs:label "BRS 43/500 C" ;
+.
+cc:brs-43-500-c-rm-768-carpet-cleaner
+  rdfs:label "brs-43-500-c-rm-768-carpet-cleaner.pdf" ;
+  rdf:type cc:ProductSpecification ;
+  cc:about cc:Standapol_A ;
+  cc:pageCount 2 ;
+.
