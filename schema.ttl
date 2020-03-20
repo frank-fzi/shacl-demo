@@ -10,6 +10,7 @@
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 <http://example.org/cc/schema>
@@ -49,6 +50,14 @@ cc:VacuumCleaner
       sh:maxCount 1 ;
       sh:minCount 1 ;
       sh:name "label" ;
+    ] ;
+  sh:property [
+      rdf:type sh:PropertyShape ;
+      sh:path cc:mass ;
+      sh:datatype xsd:string ;
+      sh:maxCount 1 ;
+      sh:minCount 1 ;
+      sh:name "mass" ;
     ] ;
 .
 cc:documentValidSince
@@ -118,4 +127,31 @@ cc:validSince
   rdf:type owl:DatatypeProperty ;
   rdfs:label "valid since" ;
   rdfs:range xsd:date ;
+.
+cc:mass
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:MassUnit ;
+  rdfs:label "weight as string with any unit, e.g. \"50 kg\""@en ;
+  rdfs:subPropertyOf cc:quantity ;
+.
+cc:mass.g
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:MassUnit ;
+  cc:rangeUnit unit:GRAM ;
+  rdfs:label "weight in g as float"@en ;
+  rdfs:subPropertyOf cc:quantity.unit ;
+.
+cc:mass.kg
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:MassUnit ;
+  cc:rangeUnit unit:KG ;
+  rdfs:label "weight in kg as float"@en ;
+  rdfs:subPropertyOf cc:quantity.unit ;
+.
+cc:mass.lbm
+  rdf:type owl:DatatypeProperty ;
+  cc:rangeQuantity qudt:MassUnit ;
+  cc:rangeUnit unit:LBM ;
+  rdfs:label "weight in lbm as float"@en ;
+  rdfs:subPropertyOf cc:quantity.unit ;
 .
